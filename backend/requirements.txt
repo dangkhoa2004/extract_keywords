@@ -1,5 +1,6 @@
-flask
-flask-cors
-aiohttp
-beautifulsoup4
-python-whois
+Flask>=2.2,<3.0
+Flask-Cors>=3.0,<4.0
+aiohttp>=3.8,<4.0
+beautifulsoup4>=4.11,<5.0
+python-whois>=0.7.3,<0.8
+flask-compress
