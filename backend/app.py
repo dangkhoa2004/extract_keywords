@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_compress import Compress
+from flask_cors import CORS
 import os, aiohttp, asyncio, re, socket, logging
 from collections import Counter
 from bs4 import BeautifulSoup
@@ -10,9 +11,8 @@ import whois
 
 app = Flask(__name__)
 Compress(app)
+CORS(app)  # ← thêm dòng này để bật CORS
 logging.basicConfig(level=logging.INFO)
-
-
 # ──────────────────────── HỖ TRỢ XỬ LÝ THỜI GIAN ────────────────────────
 def _to_aware(dt):
     if isinstance(dt, list):
@@ -202,16 +202,12 @@ def extract():
         return jsonify({"error": "URL is required"}), 400
 
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        data = loop.run_until_complete(extract_all(url))
-        loop.close()
+        data = asyncio.run(extract_all(url))  # ← thay vì new_event_loop
         return jsonify(data)
     except Exception as exc:
         logging.exception("extract failed")
         return jsonify({"error": str(exc)}), 500
 
 
-# ──────────────────────── MAIN ────────────────────────
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
