@@ -149,7 +149,7 @@
         resultDiv.classList.remove("hidden");
 
         try {
-          const res = await fetch("https://extract-keywords.onrender.com/extract", {
+          const res = await fetch("/extract", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url }),

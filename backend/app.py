@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+import os
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
@@ -8,8 +9,7 @@ import socket
 import ipaddress
 import whois
 from datetime import datetime, timezone
-app = Flask(__name__, template_folder='.')
-# app = Flask(__name__)
+app = Flask(__name__)
 
 # -------------------- Async Functions --------------------
 async def fetch(session, url):
@@ -143,5 +143,5 @@ def extract():
     result = asyncio.run(extract_all_info(url))
     return jsonify(result)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
