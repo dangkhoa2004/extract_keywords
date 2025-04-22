@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Website Keyword Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-gray-100 p-6">
+    <div class="max-w-6xl mx-auto space-y-6">
+      <div class="bg-white p-6 rounded-lg shadow text-center">
+        <h1 class="text-3xl font-bold text-blue-700">
+          <i class="fas fa-search"></i> Website Analyzer
+        </h1>
+        <p class="text-sm text-gray-500">
+          Nhập URL để phân tích toàn diện từ khóa, meta, server...
+        </p>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow">
+        <form id="keywordForm" class="space-y-4">
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="https://example.com"
+            class="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-blue-400"
+            required
+          />
+          <button
+            type="submit"
+            class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+          >
+            <i class="fas fa-chart-line"></i> Phân tích website
+          </button>
+        </form>
+      </div>
+      <div id="result" class="bg-white p-6 rounded-lg shadow hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">
+          <i class="fas fa-key"></i> Top Keywords
+        </h2>
+
+        <div
+          id="keywordList"
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-gray-700"
+        ></div>
+      </div>
+      <div id="websiteDetails" class="bg-white p-6 rounded-lg shadow hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">
+          <i class="fas fa-globe"></i> Website Details
+        </h2>
+        <p
+          id="websiteSummary"
+          class="text-sm text-gray-700 leading-relaxed"
+        ></p>
+        <p class="mt-2 text-sm text-gray-700">
+          <i class="fas fa-network-wired"></i> IP: <span id="ip"></span><br />
+          <i class="fas fa-calendar-check"></i> Domain Age:
+          <span id="domainAge"></span><br />
+          <i class="fas fa-hourglass-end"></i> Expiration Date:
+          <span id="expireDate"></span>
+        </p>
+      </div>
+
+      <div id="pageInfo" class="bg-white p-6 rounded-lg shadow hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">
+          <i class="fas fa-file-alt"></i> Page Information
+        </h2>
+        <ul class="text-sm text-gray-700 space-y-2">
+          <li>
+            <strong>Title:</strong> <span id="pageTitle"></span> (<span
+              id="titleLength"
+            ></span>
+            characters)
+          </li>
+          <li>
+            <strong>Meta Keywords:</strong>
+            <span id="metaKeywords"></span> (<span id="keywordsLength"></span>
+            characters)
+          </li>
+          <li>
+            <strong>Meta Description:</strong>
+            <span id="metaDescription"></span> (<span id="descLength"></span>
+            characters)
+          </li>
+        </ul>
+        <p class="mt-3 text-sm text-green-600">
+          <strong>SEO Score:</strong> <span id="seoScore"></span>/100
+        </p>
+      </div>
+
+      <div id="serverInfo" class="bg-white p-6 rounded-lg shadow hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">
+          <i class="fas fa-server"></i> Server Information
+        </h2>
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700"
+        >
+          <div><strong>Protocol Type:</strong> <span id="protocol"></span></div>
+          <div><strong>Page Type:</strong> <span id="pageType"></span></div>
+          <div><strong>Server Type:</strong> <span id="serverType"></span></div>
+          <div><strong>Compressed:</strong> <span id="compressed"></span></div>
+          <div>
+            <strong>Original size:</strong>
+            <span id="originalSize"></span> bytes
+          </div>
+          <div>
+            <strong>Compressed size:</strong>
+            <span id="compressedSize"></span> bytes
+          </div>
+          <div>
+            <strong>Compression ratio:</strong>
+            <span id="compressionRatio"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="externalLinks" class="bg-white p-6 rounded-lg shadow hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">
+          <i class="fas fa-link"></i> External Links
+        </h2>
+        <ul
+          id="externalLinkList"
+          class="text-sm text-gray-700 list-disc list-inside"
+        ></ul>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow hidden">
+        <canvas id="keywordChart" class="mb-4"></canvas>
+      </div>
+    </div>
+    <script>
+      let keywordChart = null;
+      const keywordForm = document.getElementById("keywordForm");
+      const urlInput = document.getElementById("urlInput");
+      const listDiv = document.getElementById("keywordList");
+      const resultDiv = document.getElementById("result");
+
+      keywordForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const url = urlInput.value;
+
+        ["websiteDetails", "serverInfo", "pageInfo", "externalLinks"].forEach(
+          (id) => document.getElementById(id).classList.add("hidden")
+        );
+        listDiv.innerHTML = '<p class="text-gray-500">⏳ Đang phân tích...</p>';
+        resultDiv.classList.remove("hidden");
+
+        try {
+          const res = await fetch("https://extract-keywords.onrender.com//extract", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+
+          const data = await res.json();
+          if (data.error) console.error(data.error);
+
+          if (data.keywords) {
+            listDiv.innerHTML = data.keywords
+              .map(
+                (k) =>
+                  `<div class="bg-gray-100 p-3 rounded shadow-sm"><strong>${k[0]}</strong>: ${k[1]}</div>`
+              )
+              .join("");
+            if (keywordChart) {
+              keywordChart.destroy();
+            }
+            keywordChart = new Chart(document.getElementById("keywordChart"), {
+              type: "bar",
+              data: {
+                labels: data.keywords.map((k) => k[0]),
+                datasets: [
+                  {
+                    label: "Keyword Frequency",
+                    data: data.keywords.map((k) => k[1]),
+                  },
+                ],
+              },
+            });
+          }
+
+          document.getElementById("websiteSummary").textContent = data.summary;
+          document.getElementById("ip").textContent = data.info.ip;
+          document.getElementById("domainAge").textContent =
+            data.info.domain_age;
+          document.getElementById("expireDate").textContent = data.info.expire;
+          document.getElementById("websiteDetails").classList.remove("hidden");
+
+          document.getElementById("pageTitle").textContent = data.meta.title;
+          document.getElementById("titleLength").textContent =
+            data.meta.title.length;
+          document.getElementById("metaKeywords").textContent =
+            data.meta.keywords;
+          document.getElementById("keywordsLength").textContent =
+            data.meta.keywords.length;
+          document.getElementById("metaDescription").textContent =
+            data.meta.description;
+          document.getElementById("descLength").textContent =
+            data.meta.description.length;
+          document.getElementById("seoScore").textContent = data.seo_score;
+          document.getElementById("pageInfo").classList.remove("hidden");
+
+          document.getElementById("protocol").textContent =
+            data.server.protocol;
+          document.getElementById("pageType").textContent =
+            data.server.page_type;
+          document.getElementById("serverType").textContent =
+            data.server.server;
+          document.getElementById("compressed").textContent =
+            data.server.compressed;
+          document.getElementById("originalSize").textContent =
+            data.server.original_size;
+          document.getElementById("compressedSize").textContent =
+            data.server.compressed_size;
+          document.getElementById("compressionRatio").textContent =
+            data.server.compression_ratio;
+          document.getElementById("serverInfo").classList.remove("hidden");
+
+          if (data.external_links && data.external_links.length) {
+            document.getElementById("externalLinkList").innerHTML =
+              data.external_links
+                .map(
+                  (l) =>
+                    `<li><a href="${l}" class="text-blue-600 hover:underline" target="_blank">${l}</a></li>`
+                )
+                .join("");
+            document.getElementById("externalLinks").classList.remove("hidden");
+          }
+        } catch (err) {
+          listDiv.innerHTML = '<p class="text-red-500">Lỗi khi phân tích.</p>';
+        }
+      });
+    </script>
+  </body>
+</html>
